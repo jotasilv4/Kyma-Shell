@@ -1,0 +1,52 @@
+@import url("./styles/workspaces.css");
+
+* {
+  all: unset;
+  color: var(--foreground);
+  font-size: 11pt;
+  font-family: "Zed Sans";
+  border-radius: 16px;
+}
+
+#bar-inner {
+  margin: 8px;
+  opacity: 1;
+  transition: all 0.5s cubic-bezier(0.5, 0.25, 0, 1);
+}
+
+#bar-inner.hidden {
+  margin: 8px;
+  margin-top: -40px;
+  opacity: 0;
+}
+
+#button-bar {
+  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
+  margin-top: 4px;
+  border-radius: 16px;
+  background-color: #1e1e2e;
+  transition: all 0.1s ease;
+}
+
+#button-bar-label {
+  color: #b4befe;
+  font-size: 20px;
+  padding: 4px;
+  border-radius: 12px;
+  transition: all 0.1s ease;
+}
+
+#button-bar:hover #button-bar-label {
+  background-color: var(--surface_bright);
+}
+
+#button-bar:active #button-bar-label {
+  color: var(--shadow);
+  background-color: var(--primary);
+}
+
+#bar {
+  border-radius: 0px;
+}
