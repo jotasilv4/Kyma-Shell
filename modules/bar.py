@@ -31,6 +31,7 @@ class Bar(Window):
         
         self.button_apps = Button(
             name="button-bar",
+            on_clicked=lambda *_: self.search_apps(),
             child=Label(
                 name="button-bar-label",
                 markup=icons.apps
@@ -41,6 +42,7 @@ class Bar(Window):
 
         self.button_power = Button(
             name="button-bar",
+            on_clicked=lambda *_: self.power_menu(),
             child=Label(
                 name="button-bar-label",
                 markup=icons.shutdown
@@ -92,3 +94,16 @@ class Bar(Window):
         window = widget.get_window()
         if window:
             window.set_cursor(None)
+            
+    def power_menu(self):
+        self.notch.open_notch("power")
+        
+    def search_apps(self):
+        self.notch.open_notch("rofi")
+        
+    def toggle_hidden(self):
+        self.hidden = not self.hidden
+        if self.hidden:
+            self.bar_inner.add_style_class("hidden")
+        else:
+            self.bar_inner.remove_style_class("hidden")

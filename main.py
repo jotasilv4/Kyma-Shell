@@ -15,11 +15,11 @@ CURRENT_WIDTH = screen.get_width()
 CURRENT_HEIGHT = screen.get_height()
 
 if __name__ == "__main__":
-    setproctitle.setproctitle("kyshell")
+    setproctitle.setproctitle("kyma-shell")
     bar = Bar()
     notch = Notch()
     bar.notch = notch
-    app = Application("kymashell", bar, notch)
+    app = Application("kyma-shell", bar, notch)
     
     def set_css():
         app.set_stylesheet_from_file(

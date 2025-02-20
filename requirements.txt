@@ -1,0 +1,4 @@
+i3ipc
+setproctitle
+git+https://github.com/Fabric-Development/fabric.git
+gray
