@@ -1,11 +1,11 @@
 # Parameters
 font_family: str = 'tabler-icons'
-font_weight: str = 'normal'
+font_weight: str = 'semi-bold'
 
 span: str = f"<span font-family='{font_family}' font-weight='{font_weight}'>"
 
 #Panels
-apps: str = "&#xf1fd;"
+apps: str = "&#x10017;"
 dashboard: str = "&#xea87;"
 chat: str = "&#xf59f;"
 wallpapers: str = "&#xeb01;"

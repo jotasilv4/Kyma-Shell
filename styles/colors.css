@@ -1,0 +1,10 @@
+:vars {
+    --foreground: #f4cdcd;
+    --background: #080808;
+
+    --active: #c8a6a6;
+    --focused: #eba0ac;
+    --default: #5a4545;
+
+    --shadow: #181825;
+}

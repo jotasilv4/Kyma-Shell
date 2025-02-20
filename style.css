@@ -1,4 +1,6 @@
+@import url("./styles/colors.css");
 @import url("./styles/workspaces.css");
+@import url("./styles/notch.css");
 
 * {
   all: unset;
@@ -8,8 +10,26 @@
   border-radius: 16px;
 }
 
+#date-time {
+  background-color: var(--background);
+  padding: 8px;
+  border-radius: 16px;
+  margin-top: 4px;
+  font-weight: bold;
+}
+
+
+#systray {
+  background-color: var(--background);
+  padding: 8px;
+  border-radius: 16px;
+  margin-top: 4px;
+}
+
 #bar-inner {
-  margin: 8px;
+  margin-top: 6px;
+  margin-left: 8px;
+  margin-right: 8px;
   opacity: 1;
   transition: all 0.5s cubic-bezier(0.5, 0.25, 0, 1);
 }
@@ -26,12 +46,12 @@
   min-height: 28px;
   margin-top: 4px;
   border-radius: 16px;
-  background-color: #1e1e2e;
+  background-color: var(--background);
   transition: all 0.1s ease;
 }
 
 #button-bar-label {
-  color: #b4befe;
+  color: var(--focused);
   font-size: 20px;
   padding: 4px;
   border-radius: 12px;
@@ -39,14 +59,31 @@
 }
 
 #button-bar:hover #button-bar-label {
-  background-color: var(--surface_bright);
+  background-color: var(--shadow);
 }
 
 #button-bar:active #button-bar-label {
-  color: var(--shadow);
-  background-color: var(--primary);
+  color: var(--background);
+  background-color: var(--foreground);
 }
 
+#notch,
 #bar {
   border-radius: 0px;
+}
+
+#corner {
+  background-color: var(--background);
+  border-radius: 0;
+}
+
+#corner-container {
+  min-width: 20px;
+  min-height: 20px;
+}
+
+#button-corner {
+  border-radius: 0px;
+  min-width: 20px;
+  min-height: 20px;
 }

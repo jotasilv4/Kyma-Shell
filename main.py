@@ -3,6 +3,8 @@ import os
 from fabric import Application
 from fabric.utils import get_relative_path
 from modules.bar import Bar
+from modules.notch import Notch
+from modules.corners import Corners
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -15,7 +17,9 @@ CURRENT_HEIGHT = screen.get_height()
 if __name__ == "__main__":
     setproctitle.setproctitle("kyshell")
     bar = Bar()
-    app = Application("kymashell", bar)
+    notch = Notch()
+    bar.notch = notch
+    app = Application("kymashell", bar, notch)
     
     def set_css():
         app.set_stylesheet_from_file(
