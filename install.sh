@@ -72,7 +72,9 @@ else
 fi
 
 # Move picom 
-mv $INSTALL_DIR/config/picom $HOME/.config/
+if [ -d "$HOME/.config/picom" ]; then
+    rm -rf $HOME/.config/picom
+    mv $INSTALL_DIR/config/picom $HOME/.config/
 
 # Move systemboot bin
 mkdir -p .local/bin/
