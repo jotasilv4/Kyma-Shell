@@ -10,6 +10,7 @@ from gi.repository import GLib, Gdk
 from modules.systemtray import SystemTray
 import modules.icons as icons
 from modules.workspaces import Workspaces
+import os
 
 class Bar(Window):
     def __init__(self, **kwargs):
@@ -22,15 +23,15 @@ class Bar(Window):
             visible=True,
             all_visilbe=True
         )
-
-        self.notch = kwargs.get("notch", None)
         
         self.systray = SystemTray()
 
-        self.date_time = DateTime(name="date-time", formatters=["%H:%M"], h_align="center", v_align="center")
+        self.time = DateTime(name="date-time", formatters=["%H:%M"], h_align="center", v_align="center")
+        self.data = DateTime(name="date-time", formatters=["%d/%m/%Y"], h_align="center", v_align="center")
         
         self.button_apps = Button(
             name="button-bar",
+            on_clicked=lambda *_: self.apps_menu(),
             child=Label(
                 name="button-bar-label",
                 markup=icons.apps
@@ -41,6 +42,7 @@ class Bar(Window):
 
         self.button_power = Button(
             name="button-bar",
+            on_clicked=lambda *_: self.power_menu(),
             child=Label(
                 name="button-bar-label",
                 markup=icons.shutdown
@@ -50,7 +52,7 @@ class Bar(Window):
         self.button_power.connect("leave_notify_event", self.on_button_leave)
         
         self.workspaces = Workspaces()
-        
+       
         self.bar_inner = CenterBox(
             name="bar-inner",
             orientation="h",
@@ -65,13 +67,14 @@ class Bar(Window):
                     self.workspaces
                 ]
             ),
+            center_children=self.data,
             end_children=Box(
                 name="end-container",
                 spacing=4,
                 orientation="h",
                 children=[
                     self.systray,
-                    self.date_time,
+                    self.time,
                     self.button_power,
                 ],
             ),
@@ -92,3 +95,9 @@ class Bar(Window):
         window = widget.get_window()
         if window:
             window.set_cursor(None)
+
+    def power_menu(self):
+        os.system("xfce4-session-logout")
+    
+    def apps_menu(self):
+        os.system("rofi -show drun")

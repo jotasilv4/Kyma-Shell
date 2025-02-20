@@ -67,23 +67,6 @@
   background-color: var(--foreground);
 }
 
-#notch,
 #bar {
   border-radius: 0px;
-}
-
-#corner {
-  background-color: var(--background);
-  border-radius: 0;
-}
-
-#corner-container {
-  min-width: 20px;
-  min-height: 20px;
-}
-
-#button-corner {
-  border-radius: 0px;
-  min-width: 20px;
-  min-height: 20px;
 }

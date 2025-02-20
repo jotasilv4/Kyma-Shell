@@ -5,7 +5,7 @@ font_weight: str = 'semi-bold'
 span: str = f"<span font-family='{font_family}' font-weight='{font_weight}'>"
 
 #Panels
-apps: str = "&#x10017;"
+apps: str = "&#xfd74;"
 dashboard: str = "&#xea87;"
 chat: str = "&#xf59f;"
 wallpapers: str = "&#xeb01;"
