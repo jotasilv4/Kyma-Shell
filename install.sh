@@ -41,7 +41,7 @@ fi
 
 # Instala o gray-git
 echo "Instalando gray-git..."
-yes | yay -Syy --needed --confirm gray-git || true
+yay -Syy --needed --confirm gray-git || true
 
 # Instala os pacotes necessários via yay
 echo "Instalando pacotes necessários com yay..."
