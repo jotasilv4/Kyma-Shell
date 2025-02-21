@@ -45,11 +45,11 @@ yes | yay -Syy --needed --confirm gray-git || true
 
 # Instala os pacotes necessários via yay
 echo "Instalando pacotes necessários com yay..."
-yay -Syy --needed --noconfirm "${PACKAGES_YAY[@]}" || true
+yay -Syy -q --needed --noconfirm "${PACKAGES_YAY[@]}" || true
 
 # Instala os pacotes necessários via pacman
 echo "Instalando pacotes necessários com pacman..."
-sudo pacman -Syy --needed --noconfirm "${PACKAGES_PACMAN[@]}" || true
+sudo pacman -Syy -q --needed --noconfirm "${PACKAGES_PACMAN[@]}" || true
 
 # Atualiza pacotes desatualizados da lista
 echo "Atualizando pacotes necessários desatualizados..."
