@@ -41,6 +41,7 @@ fi
 
 # Instala o gray-git
 echo "Instalando gray-git..."
+yes | yay -Syy --noconfirm noto-fonts || true
 yes | yay -Syy --needed --confirm gray-git || true
 
 # Instala os pacotes necessários via yay
