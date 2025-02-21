@@ -12,7 +12,6 @@ from modules.corners import MyCorner
 from gi.repository import GLib, Gdk
 import modules.icons as icons
 from modules.power import PowerMenu
-from modules.launcher import Launcher
 from modules.rofi import Rofi
 
 class Notch(Window):

@@ -70,13 +70,13 @@ fi
 # Substitui a configuração do picom, se disponível
 if [ -d "$INSTALL_DIR/config/picom" ]; then
     [ -d "$HOME/.config/picom" ] && rm -rf "$HOME/.config/picom"
-    mv "$INSTALL_DIR/config/picom" "$HOME/.config/"
+    cp -r "$INSTALL_DIR/config/picom" "$HOME/.config/"
 fi
 
 # Move o binário systemboot, se existir
 if [ -e "$INSTALL_DIR/config/systemboot" ]; then
     mkdir -p "$HOME/.local/bin/"
-    mv "$INSTALL_DIR/config/systemboot" "$HOME/.local/bin/"
+    cp "$INSTALL_DIR/config/systemboot" "$HOME/.local/bin/"
 fi
 
 # Adiciona o comando de inicialização no i3 config, se ainda não existir

@@ -21,8 +21,8 @@ class Corners(Window):
         super().__init__(
             name="corners",
             layer="top",
-            anchor="top bottom left right",
-            exclusivity="normal",
+            geometry="top",
+            type_hint="normal",
             pass_through=True,
             visible=False,
             all_visible=False,

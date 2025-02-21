@@ -27,7 +27,8 @@
 }
 
 #close-label {
-  color: #fff;
+  color: var(--background);
+  background-color: var(--foreground);
   font-size: 16px;
   padding: 4px;
   border-radius: 999px;
@@ -71,12 +72,12 @@
 #app-slot-button:focus,
 #app-slot-button:selected,
 #app-slot-button.selected {
-  background-color: var(--surface-bright);
+  background-color: var(--shadow-color);
   padding-left: 24px;
 }
 
 #app-slot-button:active {
-  background-color: var(--primary);
+  background-color: var(--shadow-color);
 }
 
 #app-icon {
@@ -92,9 +93,9 @@
 #app-slot-button:focus #app-label,
 #app-slot-button:selected #app-label,
 #app-slot-button.selected #app-label {
-  color: var(--primary);
+  color: #fff;
 }
 
 #app-slot-button:active #app-label {
-  color: var(--shadow);
+  color: #fff;
 }
