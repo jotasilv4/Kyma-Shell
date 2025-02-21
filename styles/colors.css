@@ -2,6 +2,9 @@
     --foreground: #f4cdcd;
     --background: #080808;
 
+    --shadow-color: #1f1f1f;
+    --shadow-hover: #303030;
+
     --active: #c8a6a6;
     --focused: #eba0ac;
     --default: #5a4545;

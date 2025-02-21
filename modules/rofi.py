@@ -72,6 +72,8 @@ class Rofi(Box):
                 ),
             ],
         )
+        self.header_box.children[1].connect("enter_notify_event", self.on_button_enter)
+        self.header_box.children[1].connect("leave_notify_event", self.on_button_leave)
         
         self.launcher_box = Box(
             name="launcher-box",
@@ -80,7 +82,6 @@ class Rofi(Box):
             orientation="v",
             children=[
                 self.header_box,
-                self.scrolled_window,
             ],
         )
 
@@ -89,14 +90,27 @@ class Rofi(Box):
         self.add(self.launcher_box)
         self.show_all()
         
+    def on_button_enter(self, widget, event):
+        window = widget.get_window()
+        if window:
+            window.set_cursor(Gdk.Cursor(Gdk.CursorType.HAND2))
+
+    def on_button_leave(self, widget, event):
+        window = widget.get_window()
+        if window:
+            window.set_cursor(None)
+
     def close_launcher(self):
         self.viewport.children = []
         self.selected_index = -1  # Reset selection
+        self.launcher_box.remove(self.scrolled_window)
+
         self.notch.close_notch()
     
     def open_launcher(self):
         self._all_apps = get_desktop_applications()
         self.arrange_viewport()
+        self.launcher_box.add(self.scrolled_window)
         
     def arrange_viewport(self, query: str = ""):
         if query.startswith("="):

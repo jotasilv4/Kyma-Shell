@@ -1,6 +1,6 @@
 #search-entry, #search-entry-walls {
   font-weight: bold;
-  background-color: var(--surface);
+  background-color: var(--shadow-color);
   color: var(--foreground);
   border-radius: 16px;
   padding: 10px;
@@ -8,18 +8,18 @@
 
 #search-entry selection, #search-entry-walls selection {
   color: var(--background);
-  background-color: var(--primary);
+  background-color: var(--foreground);
 }
 
 #close-button {
-  background-color: var(--surface);
+  background-color: var(--shadow-color);
   border-radius: 16px;
   padding: 10px;
 }
 
 #close-button:hover,
 #close-button:focus {
-  background-color: var(--surface-bright);
+  background-color: var(--shadow-hover);
 }
 
 #close-button:active {
@@ -27,8 +27,7 @@
 }
 
 #close-label {
-  color: var(--shadow);
-  background-color: var(--error-dim);
+  color: #fff;
   font-size: 16px;
   padding: 4px;
   border-radius: 999px;
@@ -40,7 +39,7 @@
 
 #scrolled-window scrollbar {
   border-radius: 10px;
-  background-color: var(--surface);
+  background-color: var(--shadow-color);
   padding: 4px;
   margin-left: 6px;
 }
@@ -49,7 +48,7 @@
   border-radius: 8px;
   min-width: 16px;
   min-height: 48px;
-  background-color: var(--primary);
+  background-color: var(--foreground);
 }
 
 #app-slot-button {

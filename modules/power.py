@@ -3,6 +3,7 @@ from fabric.widgets.label import Label
 from fabric.widgets.button import Button
 from fabric.utils.helpers import exec_shell_command_async
 import modules.icons as icons
+from gi.repository import GLib, Gdk
 
 class PowerMenu(Box):
     def __init__(self, **kwargs):
@@ -25,30 +26,40 @@ class PowerMenu(Box):
             child=Label(name="button-label", markup=icons.lock),
             on_clicked=self.lock,
         )
+        self.btn_lock.connect("enter_notify_event", self.on_button_enter)
+        self.btn_lock.connect("leave_notify_event", self.on_button_leave)
 
         self.btn_suspend = Button(
             name="power-menu-button",
             child=Label(name="button-label", markup=icons.suspend),
             on_clicked=self.suspend,
         )
+        self.btn_suspend.connect("enter_notify_event", self.on_button_enter)
+        self.btn_suspend.connect("leave_notify_event", self.on_button_leave)
 
         self.btn_logout = Button(
             name="power-menu-button",
             child=Label(name="button-label", markup=icons.logout),
             on_clicked=self.logout,
         )
+        self.btn_logout.connect("enter_notify_event", self.on_button_enter)
+        self.btn_logout.connect("leave_notify_event", self.on_button_leave)
 
         self.btn_reboot = Button(
             name="power-menu-button",
             child=Label(name="button-label", markup=icons.reboot),
             on_clicked=self.reboot,
         )
+        self.btn_reboot.connect("enter_notify_event", self.on_button_enter)
+        self.btn_reboot.connect("leave_notify_event", self.on_button_leave)
 
         self.btn_shutdown = Button(
             name="power-menu-button",
             child=Label(name="button-label", markup=icons.shutdown),
             on_clicked=self.poweroff,
         )
+        self.btn_shutdown.connect("enter_notify_event", self.on_button_enter)
+        self.btn_shutdown.connect("leave_notify_event", self.on_button_leave)
 
         self.buttons = [
             self.btn_lock,
@@ -65,6 +76,16 @@ class PowerMenu(Box):
 
     def close_menu(self):
         self.notch.close_notch()
+
+    def on_button_enter(self, widget, event):
+        window = widget.get_window()
+        if window:
+            window.set_cursor(Gdk.Cursor(Gdk.CursorType.HAND2))
+
+    def on_button_leave(self, widget, event):
+        window = widget.get_window()
+        if window:
+            window.set_cursor(None)
 
     # Métodos de acción
     def lock(self, *args):

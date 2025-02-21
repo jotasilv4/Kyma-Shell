@@ -12,6 +12,7 @@ from modules.corners import MyCorner
 from gi.repository import GLib, Gdk
 import modules.icons as icons
 from modules.power import PowerMenu
+from modules.launcher import Launcher
 from modules.rofi import Rofi
 
 class Notch(Window):
@@ -45,6 +46,7 @@ class Notch(Window):
             children=[
                 self.compact,
                 self.power,
+                self.rofi
             ]
         )
         self.compact.connect("enter-notify-event", self.on_button_enter)
@@ -134,6 +136,7 @@ class Notch(Window):
         
     def close_notch(self):
         #self.set_keyboard_mode("none")
+        self.rofi.launcher_box.remove(self.rofi.scrolled_window)
 
         if self.hidden:
             self.notch_box.remove_style_class("hideshow")
@@ -152,3 +155,5 @@ class Notch(Window):
             self.notch_box.add_style_class("hidden")
         else:
             self.notch_box.remove_style_class("hidden")
+
+    

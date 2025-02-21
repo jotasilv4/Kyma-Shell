@@ -11,12 +11,12 @@
 
 #power-menu-button:hover,
 #power-menu-button:focus {
-  background-color: var(--surface-bright);
+  background-color: var(--foreground);
 }
 
 #power-menu-button:hover label,
 #power-menu-button:focus label {
-  color: var(--primary);
+  color: var(--background);
 }
 
 #power-menu-button:active {
