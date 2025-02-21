@@ -1,0 +1,6 @@
+#!/bin/sh
+
+INSTALL_DIR="$HOME/.config/Kyma-Shell"
+python "$INSTALL_DIR/main.py" > /dev/null 2>&1
+
+picom --config ~/.config/picom/picom.conf &
