@@ -1,0 +1,12 @@
+:vars {
+    --foreground: {{colors.foreground}};
+    --background: {{colors.background}};
+    
+    --primary: {{colors.primary}};
+        
+    --shadow-color: #1f1f1f;
+    --shadow-hover: #303030;
+
+    --active: {{colors.active}};
+    --default: {{colors.default}};
+}

@@ -1,13 +1,13 @@
 :vars {
-    --foreground: #f4cdcd;
+    --foreground: #cdd4f4;
     --background: #080808;
 
     --shadow-color: #1f1f1f;
     --shadow-hover: #303030;
 
-    --active: #c8a6a6;
-    --focused: #eba0ac;
-    --default: #5a4545;
+    --active: #a6a9c8;
+    --focused: #a0abeb;
+    --default: #45485a;
 
     --shadow: #181825;
 }

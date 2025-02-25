@@ -8,6 +8,8 @@ PACKAGES_YAY=(
     python-fabric-git
     python-setproctitle
     python-i3ipc
+    ttf-tabler-color
+    pywal-git
 )
 PACKAGES_PACMAN=(
     picom
@@ -36,12 +38,8 @@ if [ -d "$INSTALL_DIR" ]; then
     git -C "$INSTALL_DIR" pull
 else
     echo "Clonando Kyma-Shell..."
-    git clone "$REPO_URL" "$INSTALL_DIR" -b v1.0.1
+    git clone "$REPO_URL" "$INSTALL_DIR" -b dev
 fi
-
-# Instala o gray-git
-echo "Instalando gray-git..."
-yes | yay -Syy --needed --confirm gray-git || true
 
 # Instala os pacotes necessários via yay
 echo "Instalando pacotes necessários com yay..."
@@ -50,6 +48,10 @@ yay -Syy --needed --noconfirm "${PACKAGES_YAY[@]}" || true
 # Instala os pacotes necessários via pacman
 echo "Instalando pacotes necessários com pacman..."
 sudo pacman -Syy --needed --noconfirm "${PACKAGES_PACMAN[@]}" || true
+    
+# Instala o gray-git
+echo "Instalando gray-git..."
+yes | yay -Syy --needed --confirm gray-git || true
 
 # Atualiza pacotes desatualizados da lista
 echo "Atualizando pacotes necessários desatualizados..."
