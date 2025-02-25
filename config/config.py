@@ -19,11 +19,19 @@ with open(wal_path) as file:
 for section in config.sections():
     if "file" not in config[section]:
         config[section]["file"] = colors["wallpaper"]
+    else:
+        config[section]["file"] = colors["wallpaper"]
+
     if "mode" not in config[section]:
+        config[section]["mode"] = "0"
+    else:
         config[section]["mode"] = "0"
         
 with open(nitro_path, "w") as configfile:
     config.write(configfile)
+
+with open(colors_template, "r") as file:
+    template = file.read()
     
 # Configuration colors
 set_colors = {
@@ -32,14 +40,17 @@ set_colors = {
     
     "primary": colors["colors"]["color14"],
     
-    "active": colors["colors"]["color12"],
+    "active": colors["colors"]["color4"],
     "default": "#292828"
 }
+
 for key, color in set_colors.items():
     placeholder = "{{colors." + key + "}}"
-    colors = colors.replace(placeholder, color)
+    template = template.replace(placeholder, color)
     
-with open(colors_config, "w") as file
-    file.write(colors)
+with open(colors_config, "w") as file:
+    file.write(template)
+
+print(colors)
     
 os.system("nitrogen --restore && fabric-cli exec kyma-shell 'app.set_css()'")

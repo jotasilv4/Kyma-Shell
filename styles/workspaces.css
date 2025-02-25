@@ -13,7 +13,7 @@
 }
 
 #workspaces-button.focused {
-    background-color: var(--focused);
+    background-color: var(--primary);
     min-width: 40px;
     transition: all 0.25s cubic-bezier(0.5, 0.25, 0, 1);
 }

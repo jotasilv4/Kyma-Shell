@@ -28,7 +28,7 @@
 
 #close-label {
   color: var(--background);
-  background-color: var(--foreground);
+  background-color: var(--primary);
   font-size: 16px;
   padding: 4px;
   border-radius: 999px;
@@ -49,7 +49,7 @@
   border-radius: 8px;
   min-width: 16px;
   min-height: 48px;
-  background-color: var(--foreground);
+  background-color: var(--primary);
 }
 
 #app-slot-button {
@@ -93,9 +93,9 @@
 #app-slot-button:focus #app-label,
 #app-slot-button:selected #app-label,
 #app-slot-button.selected #app-label {
-  color: #fff;
+  color: var(--primary);
 }
 
 #app-slot-button:active #app-label {
-  color: #fff;
+  color: var(--primary);
 }

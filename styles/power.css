@@ -7,13 +7,13 @@
 
 #power-menu-button label {
   font-size: 24px;
-  color: var(--foreground);
+  color: var(--primary);
   transition: color ease-in-out 0.2s;
 }
 
 #power-menu-button:hover,
 #power-menu-button:focus {
-  background-color: var(--foreground);
+  background-color: var(--primary);
 }
 
 #power-menu-button:hover label,
@@ -26,5 +26,5 @@
 }
 
 #power-menu-button:active label {
-  color: var(--shadow);
+  color: var(--background);
 }
