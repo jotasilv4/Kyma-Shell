@@ -8,6 +8,7 @@
 #power-menu-button label {
   font-size: 24px;
   color: var(--foreground);
+  transition: color ease-in-out 0.2s;
 }
 
 #power-menu-button:hover,
