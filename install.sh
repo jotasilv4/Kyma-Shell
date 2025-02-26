@@ -8,11 +8,17 @@ PACKAGES_YAY=(
     python-fabric-git
     python-setproctitle
     python-i3ipc
+    python-toml
+    python-watchdog
+    python-pillow
     ttf-tabler-color
-    pywal-git
+    matugen-bin
+    libnotify
+    playerctl
 )
 PACKAGES_PACMAN=(
     picom
+    nitrogen
 )
 
 # Evita executar como root
@@ -21,15 +27,23 @@ if [ "$(id -u)" -eq 0 ]; then
     exit 1
 fi
 
-# Instala o yay se não estiver instalado
-if ! command -v yay &>/dev/null; then
-    echo "Instalando o yay..."
+
+aur_helper=""
+if command -v yay &>/dev/null; then
+    aur_helper="yay"
+    echo $aur_helper
+elif command -v paru &>/dev/null; then
+    aur_helper="paru"
+    echo $aur_helper
+else
+    echo "Installing yay-bin..."
     tmpdir=$(mktemp -d)
-    git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
-    pushd "$tmpdir/yay" > /dev/null
+    git clone https://aur.archlinux.org/yay-bin.git "$tmpdir/yay-bin"
+    cd "$tmpdir/yay-bin"
     makepkg -si --noconfirm
-    popd > /dev/null
+    cd - > /dev/null
     rm -rf "$tmpdir"
+    aur_helper="yay"
 fi
 
 # Clona ou atualiza o Kyma-Shell
@@ -43,7 +57,8 @@ fi
 
 # Instala os pacotes necessários via yay
 echo "Instalando pacotes necessários com yay..."
-yay -Syy --needed --noconfirm "${PACKAGES_YAY[@]}" || true
+$aur_helper -Syy --needed --noconfirm "${PACKAGES[@]}" || true
+
 
 # Instala os pacotes necessários via pacman
 echo "Instalando pacotes necessários com pacman..."
@@ -51,11 +66,11 @@ sudo pacman -Syy --needed --noconfirm "${PACKAGES_PACMAN[@]}" || true
     
 # Instala o gray-git
 echo "Instalando gray-git..."
-yes | yay -Syy --needed --confirm gray-git || true
+yes | $aur_helper -Syy --needed --confirm gray-git || true
 
 # Atualiza pacotes desatualizados da lista
 echo "Atualizando pacotes necessários desatualizados..."
-outdated=$(yay -Qu | awk '{print $1}')
+outdated=$($aur_helper -Qu | awk '{print $1}')
 to_update=()
 for pkg in "${PACKAGES_YAY[@]}"; do
     if echo "$outdated" | grep -q "^$pkg\$"; then
@@ -64,7 +79,7 @@ for pkg in "${PACKAGES_YAY[@]}"; do
 done
 
 if [ ${#to_update[@]} -gt 0 ]; then
-    yay -S --noconfirm "${to_update[@]}" || true
+    $aur_helper -S --noconfirm "${to_update[@]}" || true
 else
     echo "Todos os pacotes necessários estão atualizados."
 fi

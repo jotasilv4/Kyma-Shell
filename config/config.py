@@ -1,56 +1,87 @@
+import os
 import json
-import os, sys
-from configparser import ConfigParser
+import shutil
+import gi
 
-os.system(f"wal -i {sys.argv[1]}")
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from PIL import Image
+import toml
 
-wal_path = os.path.expanduser("~/.cache/wal/colors.json")
+CONFIG_DIR = os.path.expanduser("~/.config/Kyma-Shell")
+WALLPAPERS_DIR_DEFAULT = os.path.expanduser("~/.config/Kyma-Shell/assets/wallpapers")
 
-nitro_path = os.path.expanduser("~/.config/nitrogen/bg-saved.cfg")
-config = ConfigParser()
-config.read(nitro_path)
+def deep_update(target: dict, update: dict) -> dict:
+    """
+    Recursively update a nested dictionary with values from another dictionary.
+    """
+    for key, value in update.items():
+        if isinstance(value, dict):
+            target[key] = deep_update(target.get(key, {}), value)
+        else:
+            target[key] = value
+    return target
 
-colors_template = os.path.expanduser("~/.config/Kyma-Shell/config/kyma-shell.css")
-colors_config = os.path.expanduser("~/.config/Kyma-Shell/styles/colors.css")
+def ensure_matugen_config():
+    expected_config = {
+        "config": {
+            "reload_apps": True,
+            "wallpaper": {
+                "command": "nitrogen",
+                "arguments": ["--restore"],
+                "set": True
+            }
+        },
+        "templates": {
+            "kyma-shell": {
+                "input_path": "~/.config/Kyma-Shell/config/components/matugen/kyma-shell.css",
+                "output_path": "~/.config/Kyma-Shell/styles/colors.css",
+                "post_hook": (
+                    "fabric-cli exec kyma-shell 'app.set_css()' &"
+                )
+            }
+        }
+    }
 
-with open(wal_path) as file:
-    colors = json.load(file)
+    config_path = os.path.expanduser('~/.config/matugen/config.toml')
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
 
-for section in config.sections():
-    if "file" not in config[section]:
-        config[section]["file"] = colors["wallpaper"]
-    else:
-        config[section]["file"] = colors["wallpaper"]
+    existing_config = {}
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            existing_config = toml.load(f)
 
-    if "mode" not in config[section]:
-        config[section]["mode"] = "0"
-    else:
-        config[section]["mode"] = "0"
-        
-with open(nitro_path, "w") as configfile:
-    config.write(configfile)
+        shutil.copyfile(config_path, config_path + '.bak')
 
-with open(colors_template, "r") as file:
-    template = file.read()
+    merged_config = deep_update(existing_config, expected_config)
+    with open(config_path, "w") as f:
+        toml.dump(merged_config, f)
+
+    current_wall = os.path.expanduser("~/.current.wall")
+    if not os.path.exists(current_wall):
+        image_path = os.path.expanduser("~/.config/Kyma-Shell/assets/wallpapers/example-7.jpg")
+        os.system(f"matugen image {image_path}")
+
+def generate_i3conf() -> str:
+    home = os.path.expanduser("~")
     
-# Configuration colors
-set_colors = {
-    "foreground": colors["special"]["foreground"],
-    "background": "#080808",
-    
-    "primary": colors["colors"]["color14"],
-    
-    "active": colors["colors"]["color4"],
-    "default": "#292828"
-}
+    i3_config = os.path.expanduser("~/.config/Kyma-Shell/config/components/i3/config")
+    with open(i3_config, "r") as f:
+        config = f.read()
 
-for key, color in set_colors.items():
-    placeholder = "{{colors." + key + "}}"
-    template = template.replace(placeholder, color)
-    
-with open(colors_config, "w") as file:
-    file.write(template)
+    return config
 
-print(colors)
-    
-os.system("nitrogen --restore && fabric-cli exec kyma-shell 'app.set_css()'")
+def start_config():
+    ensure_matugen_config()
+
+    i3_config_dir = os.path.expanduser("~/.config/i3/")
+    os.makedirs(i3_config_dir, exist_ok=True)
+
+    i3_config_path = os.path.join(i3_config_dir, "config")
+    with open(i3_config_path, "w") as f:
+        f.write(generate_i3conf())
+
+    os.system("i3-msg reload")
+
+if __name__ == "__main__":
+    start_config()

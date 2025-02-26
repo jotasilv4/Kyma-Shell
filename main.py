@@ -5,6 +5,7 @@ from fabric.utils import get_relative_path
 from modules.bar import Bar
 from modules.notch import Notch
 from modules.corners import Corners
+from config.config import start_config
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -14,8 +15,13 @@ screen = Gdk.Screen.get_default()
 CURRENT_WIDTH = screen.get_width()
 CURRENT_HEIGHT = screen.get_height()
 
+config_path = os.path.expanduser("~/.config/Kyma-Shell/styles/colors.css")
+
 if __name__ == "__main__":
     setproctitle.setproctitle("kyma-shell")
+    if not os.path.isfile(config_path):
+        start_config()
+
     bar = Bar()
     notch = Notch()
     bar.notch = notch
