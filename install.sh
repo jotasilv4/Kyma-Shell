@@ -95,6 +95,7 @@ fi
 if [ -e "$INSTALL_DIR/config/systemboot" ]; then
     mkdir -p "$HOME/.local/bin/"
     cp "$INSTALL_DIR/config/systemboot" "$HOME/.local/bin/"
+    chmod +x "$HOME/.local/bin/systemboot"
 fi
 
 # Adiciona o comando de inicialização no i3 config, se ainda não existir
