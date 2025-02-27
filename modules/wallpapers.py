@@ -16,11 +16,11 @@ from concurrent.futures import ThreadPoolExecutor
 from configparser import ConfigParser
 
 class WallpaperSelector(Box):
-    CACHE_DIR = os.path.expanduser("~/.cache/ax-shell/thumbs")  # Changed from wallpapers to thumbs
+    CACHE_DIR = os.path.expanduser("~/.cache/kyma-shell/thumbs")  # Changed from wallpapers to thumbs
 
     def __init__(self, **kwargs):
         # Delete the old cache directory if it exists
-        old_cache_dir = os.path.expanduser("~/.cache/ax-shell/wallpapers")
+        old_cache_dir = os.path.expanduser("~/.cache/kyma-shell/wallpapers")
         if os.path.exists(old_cache_dir):
             shutil.rmtree(old_cache_dir)
         
