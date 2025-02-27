@@ -15,6 +15,7 @@ PACKAGES_YAY=(
     matugen-bin
     libnotify
     playerctl
+    vte3
 )
 PACKAGES_PACMAN=(
     picom

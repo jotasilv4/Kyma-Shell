@@ -13,6 +13,7 @@ from gi.repository import GLib, Gdk
 import modules.icons as icons
 from modules.power import PowerMenu
 from modules.rofi import Rofi
+from modules.dashboard import Dashboard
 
 class Notch(Window):
     def __init__(self, **kwargs):
@@ -29,10 +30,12 @@ class Notch(Window):
         
         self.power = PowerMenu(notch=self)
         self.rofi = Rofi(notch=self)
+        self.dashboard = Dashboard(notch=self)
 
         self.compact = Button(
             name="notch-compact",
             h_expand=True,
+            on_clicked=lambda *_: self.open_notch("dashboard"),
             child=Label(label=f"{os.getlogin()}@{os.uname().nodename}")
         )
 
@@ -45,7 +48,8 @@ class Notch(Window):
             children=[
                 self.compact,
                 self.power,
-                self.rofi
+                self.rofi,
+                self.dashboard
             ]
         )
         self.compact.connect("enter-notify-event", self.on_button_enter)
@@ -113,7 +117,8 @@ class Notch(Window):
             
         widgets = {
             "power": self.power,
-            "rofi": self.rofi
+            "rofi": self.rofi,
+            "dashboard": self.dashboard
         }
         
         for style in widgets.keys():
@@ -130,8 +135,11 @@ class Notch(Window):
                 self.rofi.open_launcher()
                 self.rofi.search_entry.set_text("")
                 self.rofi.search_entry.grab_focus()
+
+            # if widget == "dashboard" and self.dashboard.stack.get_visible_child() != self.dashboard.stack.get_children()[0]:
+            #     self.dashboard.stack.set_visible_child(self.dashboard.stack.get_children()[0])
         else:
-            self.stack.set_visible_child(self.compact)
+            self.stack.set_visible_child(self.dashboard)
         
     def close_notch(self):
         #self.set_keyboard_mode("none")
@@ -141,9 +149,9 @@ class Notch(Window):
             self.notch_box.remove_style_class("hideshow")
             self.notch_box.add_style_class("hidden")
 
-        for widget in [self.power, self.rofi]:
+        for widget in [self.power, self.rofi, self.dashboard]:
              widget.remove_style_class("open")
-        for style in ["power", "rofi"]:
+        for style in ["power", "rofi", "dashboard"]:
             self.stack.remove_style_class(style)
             
         self.stack.set_visible_child(self.compact)

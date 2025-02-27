@@ -91,6 +91,10 @@ cancel: str = "&#xeb55;"
 # Config
 config: str = "&#xeb20;"
 
+# Misc
+dot: str = "&#xf698;"
+palette: str = "&#xeb01;"
+
 exceptions: list[str] = ['font_family', 'font_weight', 'span']
 
 def apply_span() -> None:

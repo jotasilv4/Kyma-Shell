@@ -37,6 +37,13 @@
     margin-top: -2px;
 }
 
+#notch-content.dashboard {
+  padding: 16px;
+  min-height: 430px;
+  min-width: 750px;
+  border-radius: 0 0 36px 36px;
+}
+
 #notch-content.power {
   min-height: 84px;
   min-width: 308px;
