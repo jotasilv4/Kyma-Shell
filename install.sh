@@ -11,7 +11,7 @@ PACKAGES_YAY=(
     python-toml
     python-watchdog
     python-pillow
-    ttf-tabler-color
+    ttf-tabler-icons
     matugen-bin
     libnotify
     playerctl
@@ -57,7 +57,7 @@ fi
 
 # Instala os pacotes necessários via yay
 echo "Instalando pacotes necessários com yay..."
-$aur_helper -Syy --needed --noconfirm "${PACKAGES[@]}" || true
+$aur_helper -Syy --needed --noconfirm "${PACKAGES_YAY[@]}" || true
 
 
 # Instala os pacotes necessários via pacman
