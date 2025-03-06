@@ -16,6 +16,7 @@ PACKAGES_YAY=(
     libnotify
     playerctl
     vte3
+    gtk3
 )
 PACKAGES_PACMAN=(
     picom
