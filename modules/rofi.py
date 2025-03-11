@@ -4,10 +4,12 @@ from fabric.widgets.box import Box
 from fabric.widgets.label import Label
 from fabric.widgets.button import Button
 from fabric.widgets.entry import Entry
+from fabric.widgets.image import Image
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from fabric.utils import DesktopApp, get_desktop_applications, idle_add, remove_handler
+from fabric.utils import DesktopApp, get_desktop_applications, idle_add, remove_handler, exec_shell_command_async, get_relative_path
 from gi.repository import GLib, Gdk
 import modules.icons as icons
+import config.data as data
 import json
 import os
 import re
@@ -22,21 +24,21 @@ class Rofi(Box):
             all_visible=False,
             **kwargs,
         )
-        
+
         self.notch = kwargs["notch"]
         self.selected_index = -1  # Track the selected item index
-        
+
         self._arranger_handler: int = 0
         self._all_apps = get_desktop_applications()
-        
+
         # Calculator history initialization
-        self.calc_history_path = os.path.expanduser("~/.cache/kyma-shell/calc.json")
+        self.calc_history_path = f"~/.cache/kyma-shell/calc.json"
         if os.path.exists(self.calc_history_path):
             with open(self.calc_history_path, "r") as f:
                 self.calc_history = json.load(f)
         else:
             self.calc_history = []
-            
+
         self.viewport = Box(name="viewport", spacing=4, orientation="v")
         self.search_entry = Entry(
             name="search-entry",
@@ -57,12 +59,17 @@ class Rofi(Box):
             max_content_size=(450, 105),
             child=self.viewport,
         )
-
+        self.configpath = get_relative_path("../config/config.py")
         self.header_box = Box(
             name="header_box",
             spacing=10,
             orientation="h",
             children=[
+                Button(
+                    name="config-button",
+                    child=Label(name="config-label", markup=icons.config),
+                    on_clicked=lambda *_: (exec_shell_command_async(f"python {get_relative_path('../config/config.py')}"), self.close_launcher()),
+                ),
                 self.search_entry,
                 Button(
                     name="close-button",
@@ -72,9 +79,7 @@ class Rofi(Box):
                 ),
             ],
         )
-        self.header_box.children[1].connect("enter_notify_event", self.on_button_enter)
-        self.header_box.children[1].connect("leave_notify_event", self.on_button_leave)
-        
+
         self.launcher_box = Box(
             name="launcher-box",
             spacing=10,
@@ -89,29 +94,18 @@ class Rofi(Box):
 
         self.add(self.launcher_box)
         self.show_all()
-        
-    def on_button_enter(self, widget, event):
-        window = widget.get_window()
-        if window:
-            window.set_cursor(Gdk.Cursor(Gdk.CursorType.HAND2))
-
-    def on_button_leave(self, widget, event):
-        window = widget.get_window()
-        if window:
-            window.set_cursor(None)
 
     def close_launcher(self):
         self.viewport.children = []
         self.selected_index = -1  # Reset selection
         self.launcher_box.remove(self.scrolled_window)
-
         self.notch.close_notch()
-    
+
     def open_launcher(self):
         self._all_apps = get_desktop_applications()
         self.arrange_viewport()
         self.launcher_box.add(self.scrolled_window)
-        
+
     def arrange_viewport(self, query: str = ""):
         if query.startswith("="):
             # In calculator mode, update history view once (not per keystroke)
@@ -143,15 +137,15 @@ class Rofi(Box):
             filtered_apps_iter,
             pin=True,
         )
-    
+
     def handle_arrange_complete(self, should_resize, query):
-            if should_resize:
-                self.resize_viewport()
-            # Only auto-select first item if query exists
-            if query.strip() != "" and self.viewport.get_children():
-                self.update_selection(0)
-            return False
-    
+        if should_resize:
+            self.resize_viewport()
+        # Only auto-select first item if query exists
+        if query.strip() != "" and self.viewport.get_children():
+            self.update_selection(0)
+        return False
+
     def add_next_application(self, apps_iter: Iterator[DesktopApp]):
         if not (app := next(apps_iter, None)):
             return False
@@ -172,6 +166,7 @@ class Rofi(Box):
                 orientation="h",
                 spacing=10,
                 children=[
+                    Image(name="app-icon", pixbuf=app.get_icon_pixbuf(size=24), h_align="start"),
                     Label(
                         name="app-label",
                         label=app.display_name or "Unknown",
@@ -207,12 +202,12 @@ class Rofi(Box):
             alloc = button.get_allocation()
             if alloc.height == 0:
                 return False  # Retry if allocation isn't ready
-            
+
             y = alloc.y
             height = alloc.height
             page_size = adj.get_page_size()
             current_value = adj.get_value()
-            
+
             # Calculate visible boundaries
             visible_top = current_value
             visible_bottom = current_value + page_size
@@ -252,6 +247,9 @@ class Rofi(Box):
                         children[selected_index].clicked()
 
     def on_search_entry_key_press(self, widget, event):
+        if event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and (event.state & Gdk.ModifierType.SHIFT_MASK):
+            self.add_selected_app_to_dock()
+            return True
         text = widget.get_text()
         if text.startswith("="):
             if event.keyval == Gdk.KEY_Down:
@@ -289,6 +287,34 @@ class Rofi(Box):
                 self.close_launcher()
                 return True
             return False
+
+    def add_selected_app_to_dock(self):
+        """Adds the currently selected application to the dock.json file."""
+        children = self.viewport.get_children()
+        if not children or self.selected_index == -1 or self.selected_index >= len(children):
+            return  # No app selected
+
+        selected_button = children[self.selected_index]
+        # Assuming the app's name/command is stored in the tooltip_text of the button.
+        # We need to extract the app's command from the DesktopApp object.
+        selected_app = next((app for app in self._all_apps if app.display_name == selected_button.get_child().get_children()[1].props.label), None)
+        if not selected_app:
+            return
+
+        app_command = selected_app.executable
+
+        config_path = get_relative_path("../config/dock.json")
+        try:
+            with open(config_path, "r+") as file:
+                data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {}  # Initialize as an empty dictionary if file not found or corrupted
+            with open(config_path, "w") as file: #create the file
+                pass
+        if app_command not in data.get("pinned_apps", []):
+            data.setdefault("pinned_apps", []).append(app_command)
+            with open(config_path, "w") as file:
+                json.dump(data, file, indent=4)
 
     def move_selection(self, delta: int):
         children = self.viewport.get_children()

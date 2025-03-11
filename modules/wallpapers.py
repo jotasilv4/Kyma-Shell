@@ -26,6 +26,7 @@ class WallpaperSelector(Box):
         
         super().__init__(name="wallpapers", spacing=4, orientation="v", h_expand=False, v_expand=False, **kwargs)
         os.makedirs(self.CACHE_DIR, exist_ok=True)
+        
         self.files = sorted([f for f in os.listdir("/home/moretti/.config/Kyma-Shell/assets/wallpapers/") if self._is_image(f)])
         self.thumbnails = []
         self.thumbnail_queue = []
@@ -81,12 +82,23 @@ class WallpaperSelector(Box):
         self.scheme_dropdown.set_active_id("scheme-tonal-spot")
         self.scheme_dropdown.connect("changed", self.on_scheme_changed)
 
+        # Create a switcher to enable/disable Matugen (enabled by default)
+        self.matugen_switcher = Gtk.Switch(name="matugen-switcher")
+        self.matugen_switcher.set_vexpand(False)
+        self.matugen_switcher.set_hexpand(False)
+        self.matugen_switcher.set_valign(Gtk.Align.CENTER)
+        self.matugen_switcher.set_halign(Gtk.Align.CENTER)
+        self.matugen_switcher.set_active(True)
+        
+        self.mat_icon = Label(name="mat-label", markup=icons.palette)
+                
         # Add the switcher to the header_box's start_children
         self.header_box = CenterBox(
             name="header-box",
             spacing=8,
             orientation="h",
-            start_children=[self.search_entry],
+            start_children=[self.matugen_switcher, self.mat_icon],
+            center_children=[self.search_entry],
             end_children=[self.scheme_dropdown],
         )
 
@@ -104,32 +116,44 @@ class WallpaperSelector(Box):
         self.file_monitor.connect("changed", self.on_directory_changed)
 
     def on_directory_changed(self, monitor, file, other_file, event_type):
-        file_name = file.get_basename()
-        if event_type == Gio.FileMonitorEvent.DELETED:
-            if file_name in self.files:
-                self.files.remove(file_name)
-                cache_path = self._get_cache_path(file_name)
-                if os.path.exists(cache_path):
-                    try:
-                        os.remove(cache_path)
-                    except Exception as e:
-                        print(f"Error deleting cache {cache_path}: {e}")
-                self.thumbnails = [(p, n) for p, n in self.thumbnails if n != file_name]
-                GLib.idle_add(self.arrange_viewport, self.search_entry.get_text())
-        elif event_type == Gio.FileMonitorEvent.CREATED:
-            if self._is_image(file_name) and file_name not in self.files:
-                self.files.append(file_name)
-                self.files.sort()
-                self.executor.submit(self._process_file, file_name)
-        elif event_type == Gio.FileMonitorEvent.CHANGED:
-            if self._is_image(file_name) and file_name in self.files:
-                cache_path = self._get_cache_path(file_name)
-                if os.path.exists(cache_path):
-                    try:
-                        os.remove(cache_path)
-                    except Exception as e:
-                        print(f"Error deleting cache for changed file {file_name}: {e}")
-                self.executor.submit(self._process_file, file_name)
+            file_name = file.get_basename()
+            if event_type == Gio.FileMonitorEvent.DELETED:
+                if file_name in self.files:
+                    self.files.remove(file_name)
+                    cache_path = self._get_cache_path(file_name)
+                    if os.path.exists(cache_path):
+                        try:
+                            os.remove(cache_path)
+                        except Exception as e:
+                            print(f"Error deleting cache {cache_path}: {e}")
+                    self.thumbnails = [(p, n) for p, n in self.thumbnails if n != file_name]
+                    GLib.idle_add(self.arrange_viewport, self.search_entry.get_text())
+            elif event_type == Gio.FileMonitorEvent.CREATED:
+                if self._is_image(file_name):
+                    # Convert filename to lowercase and replace spaces with "-"
+                    new_name = file_name.lower().replace(" ", "-")
+                    full_path = os.path.join(data.WALLPAPERS_DIR, file_name)
+                    new_full_path = os.path.join(data.WALLPAPERS_DIR, new_name)
+                    if new_name != file_name:
+                        try:
+                            os.rename(full_path, new_full_path)
+                            file_name = new_name
+                            print(f"Renamed file '{full_path}' to '{new_full_path}'")
+                        except Exception as e:
+                            print(f"Error renaming file {full_path}: {e}")
+                    if file_name not in self.files:
+                        self.files.append(file_name)
+                        self.files.sort()
+                        self.executor.submit(self._process_file, file_name)
+            elif event_type == Gio.FileMonitorEvent.CHANGED:
+                if self._is_image(file_name) and file_name in self.files:
+                    cache_path = self._get_cache_path(file_name)
+                    if os.path.exists(cache_path):
+                        try:
+                            os.remove(cache_path)
+                        except Exception as e:
+                            print(f"Error deleting cache for changed file {file_name}: {e}")
+                    self.executor.submit(self._process_file, file_name)
 
     def arrange_viewport(self, query: str = ""):
         model = self.viewport.get_model()
@@ -142,8 +166,7 @@ class WallpaperSelector(Box):
         filtered_thumbnails.sort(key=lambda x: x[1].lower())
         for pixbuf, file_name in filtered_thumbnails:
             model.append([pixbuf, file_name])
-        # Si el input está vacío, no se marca ningún ícono;
-        # de lo contrario, se marca el primero
+        # If the search entry is empty, no icon is selected; otherwise, select the first one.
         if query.strip() == "":
             self.viewport.unselect_all()
             self.selected_index = -1
@@ -213,13 +236,11 @@ class WallpaperSelector(Box):
             return
 
         if self.selected_index == -1:
-            # Si no hay selección previa, iniciamos en 0 o en el último según la flecha
             new_index = 0 if keyval in (Gdk.KEY_Down, Gdk.KEY_Right) else total_items - 1
         else:
             current_index = self.selected_index
-            # Se calcula el número de columnas basado en el ancho asignado al IconView y el ancho aproximado de cada ítem.
             allocation = self.viewport.get_allocation()
-            item_width = 108  # Valor aproximado (tamaño del thumbnail más márgenes)
+            item_width = 108  # Approximate item width including margins
             columns = max(1, allocation.width // item_width)
             if keyval == Gdk.KEY_Right:
                 new_index = current_index + 1
@@ -229,19 +250,18 @@ class WallpaperSelector(Box):
                 new_index = current_index + columns
             elif keyval == Gdk.KEY_Up:
                 new_index = current_index - columns
-            # Aseguramos que el índice esté dentro de los límites
             if new_index < 0:
                 new_index = 0
             if new_index >= total_items:
                 new_index = total_items - 1
 
         self.update_selection(new_index)
-
+    
     def update_selection(self, new_index: int):
         self.viewport.unselect_all()
         path = Gtk.TreePath.new_from_indices([new_index])
         self.viewport.select_path(path)
-        self.viewport.scroll_to_path(path, False, 0.5, 0.5)  # Asegura que el ícono marcado esté visible
+        self.viewport.scroll_to_path(path, False, 0.5, 0.5)  # Ensure the selected icon is visible
         self.selected_index = new_index
 
     def _start_thumbnail_thread(self):
