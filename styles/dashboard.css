@@ -16,10 +16,6 @@
   min-width: 750px;
 }
 
-#box-2 {
-  min-width: 420px;
-}
-
 #box-3 {
   min-width: 88px;
   /*min-height: 226px;*/
@@ -58,10 +54,12 @@
 }
 
 #coming-soon-label {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
   font-style: italic;
 }
+
+
 
 #metrics {
   border-radius: 16px;
@@ -145,4 +143,12 @@
 #disk-label {
   color: var(--tertiary);
   font-size: 20px;
+}
+
+#applet-stack {
+  min-width: 220px;
+  border-radius: 20px;
+  border: 4px solid var(--surface);
+  padding: 4px;
+  min-height: 378px;
 }

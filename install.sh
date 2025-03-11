@@ -17,6 +17,10 @@ PACKAGES_YAY=(
     playerctl
     vte3
     gtk3
+    gnome-bluetooth-3.0
+    cava
+    acpi
+    brightnessctl
 )
 PACKAGES_PACMAN=(
     picom
