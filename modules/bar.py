@@ -9,7 +9,7 @@ from fabric.widgets.x11 import X11Window as Window
 from gi.repository import GLib, Gdk
 from modules.systemtray import SystemTray
 import modules.icons as icons
-from modules.workspaces import Workspaces
+from utils.i3 import Workspaces
 
 class Bar(Window):
     def __init__(self, **kwargs):

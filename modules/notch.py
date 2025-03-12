@@ -5,8 +5,8 @@ from fabric.widgets.label import Label
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.button import Button
 from fabric.widgets.stack import Stack
+from fabric.widgets.eventbox import EventBox
 from fabric.widgets.x11 import X11Window as Window
-from fabric.hyprland.widgets import ActiveWindow
 from fabric.utils.helpers import FormattedString, truncate
 from modules.corners import MyCorner
 from gi.repository import GLib, Gdk
@@ -14,6 +14,7 @@ import modules.icons as icons
 from modules.power import PowerMenu
 from modules.rofi import Rofi
 from modules.dashboard import Dashboard
+from utils.i3 import ActiveWindows
 
 class Notch(Window):
     def __init__(self, **kwargs):
@@ -31,14 +32,30 @@ class Notch(Window):
         self.power = PowerMenu(notch=self)
         self.rofi = Rofi(notch=self)
         self.dashboard = Dashboard(notch=self)
-
-        self.compact = Button(
-            name="notch-compact",
+        
+        self.active_windows = ActiveWindows()
+        
+        self.compact_stack = Stack(
+            name="notch-compact-stack",
+            v_expand=True,
             h_expand=True,
-            on_clicked=lambda *_: self.open_notch("dashboard"),
-            child=Label(label=f"{os.getlogin()}@{os.uname().nodename}")
+            transition_type="slide-up-down",
+            transition_duration=100,
+            children=[
+                self.active_windows
+            ]
         )
 
+        self.compact = EventBox(
+            name="notch-compact",
+            visible=True,
+            child=self.compact_stack
+        )
+        
+        self.compact.connect("enter-notify-event", self.on_button_enter)
+        self.compact.connect("leave-notify-event", self.on_button_leave)
+        self.compact.connect("button-press-event", lambda *_: self.open_notch("dashboard"))
+        
         self.stack = Stack(
             name="notch-content",
             v_expand=True,
@@ -52,8 +69,6 @@ class Notch(Window):
                 self.dashboard
             ]
         )
-        self.compact.connect("enter-notify-event", self.on_button_enter)
-        self.compact.connect("leave-notify-event", self.on_button_leave)
 
         self.corner_left = Box(
             name="notch-corner-left",
