@@ -320,6 +320,7 @@ class Player(Box):
             for p in players:
                 mp = MprisPlayer(p)
                 pb = PlayerBox(mpris_player=mp)
+                print(mp)
                 self.player_stack.add_titled(pb, mp.player_name, mp.player_name)
         else:
             pb = PlayerBox(mpris_player=None)

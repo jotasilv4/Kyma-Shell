@@ -62,3 +62,33 @@
   font-size: 24px;
   margin-left: 4px;
 }
+
+#scrolled-window {
+    border-radius: 12px;
+    margin: 0 80px;
+}
+#wallpaper-icons {
+    background: transparent;
+    -GtkIconView-item-width: 192px;
+    -GtkIconView-item-height: 108px;
+}
+
+#search-entry-walls {
+    margin: 0 20px;
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 24px;
+}
+
+#screen-dropdown > * > * {
+  font-weight: bold;
+  color: var(--shadow);
+}
+
+#screen-dropdown.box button.box.cellview {
+  background-color: var(--primary);
+}
+
+#screen-dropdown.box button.box.cellview:selected {
+  background-color: var(--surface-bright);
+}

@@ -54,7 +54,7 @@ class Dashboard(Box):
 
 
         self.stack.add_titled(self.widgets, "widgets", "Widgets")
-        #self.stack.add_titled(self.wallpapers, "wallpapers", "Wallpapers")
+        self.stack.add_titled(self.wallpapers, "wallpapers", "Wallpapers")
 
         self.switcher.set_stack(self.stack)
         self.switcher.set_hexpand(True)

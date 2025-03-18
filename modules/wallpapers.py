@@ -5,64 +5,95 @@ from gi.repository import GdkPixbuf, Gtk, GLib, Gio, Gdk
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.entry import Entry
-from fabric.widgets.button import Button
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from fabric.widgets.label import Label
 from fabric.utils.helpers import exec_shell_command_async
-import modules.icons as icons
 from PIL import Image
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
-from configparser import ConfigParser
+from threading import Lock
+from functools import partial
+import configparser
 
 class WallpaperSelector(Box):
-    CACHE_DIR = os.path.expanduser("~/.cache/kyma-shell/thumbs")  # Changed from wallpapers to thumbs
+    HOME = os.path.expanduser("~")
+    CACHE_DIR = os.path.join(HOME, ".cache/kyma-shell/thumbs")
+    WALLPAPERS_DIR = os.path.join(HOME, ".config/Kyma-Shell/assets/wallpapers/")
+    NITROGEN_CFG = os.path.join(HOME, ".config/nitrogen/bg-saved.cfg")
 
     def __init__(self, **kwargs):
-        # Delete the old cache directory if it exists
-        old_cache_dir = os.path.expanduser("~/.cache/kyma-shell/wallpapers")
+        old_cache_dir = os.path.join(self.HOME, ".cache/kyma-shell/wallpapers")
         if os.path.exists(old_cache_dir):
             shutil.rmtree(old_cache_dir)
         
-        super().__init__(name="wallpapers", spacing=4, orientation="v", h_expand=False, v_expand=False, **kwargs)
+        super().__init__(
+            name="wallpapers",
+            orientation="v",
+            h_expand=True,
+            v_expand=True,
+            margin=10,
+            spacing=10,
+            **kwargs
+        )
         os.makedirs(self.CACHE_DIR, exist_ok=True)
         
-        self.files = sorted([f for f in os.listdir("/home/moretti/.config/Kyma-Shell/assets/wallpapers/") if self._is_image(f)])
+        self.screens = self._load_nitro_screens()
+        self.files = sorted([f for f in os.listdir(self.WALLPAPERS_DIR) if self._is_image(f)])
         self.thumbnails = []
-        self.thumbnail_queue = []
-        self.executor = ThreadPoolExecutor(max_workers=4)  # Shared executor
-
-        # Variable para controlar la selección (similar a AppLauncher)
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.thumb_lock = Lock()
         self.selected_index = -1
 
-        # Inicialización de componentes UI
-        self.viewport = Gtk.IconView(name="wallpaper-icons")
+        # Configuração do grid
+        self.viewport = Gtk.IconView(
+            name="wallpaper-icons",
+            item_width=140,
+            columns=5,
+            row_spacing=20,
+            column_spacing=20,
+            margin=10,
+        )
         self.viewport.set_model(Gtk.ListStore(GdkPixbuf.Pixbuf, str))
         self.viewport.set_pixbuf_column(0)
-        # Quitamos la columna de texto para que solo se muestre la imagen
-        self.viewport.set_text_column(-1)
-        self.viewport.set_item_width(0)
         self.viewport.connect("item-activated", self.on_wallpaper_selected)
+
+        # Container centralizado
+        self.center_box = Box(
+            orientation="v",
+            halign=Gtk.Align.CENTER,
+            valign=Gtk.Align.CENTER,
+            h_expand=True,
+            v_expand=True,
+        )
+        self.center_box.add(self.viewport)
 
         self.scrolled_window = ScrolledWindow(
             name="scrolled-window",
-            spacing=10,
             h_expand=True,
             v_expand=True,
-            child=self.viewport,
+            min_content_width=800,
+            child=self.center_box,
         )
 
+        # Componentes da UI
         self.search_entry = Entry(
             name="search-entry-walls",
             placeholder="Search Wallpapers...",
             h_expand=True,
+            halign=Gtk.Align.CENTER,
             notify_text=lambda entry, *_: self.arrange_viewport(entry.get_text()),
             on_key_press_event=self.on_search_entry_key_press,
         )
-        self.search_entry.props.xalign = 0.5
-        # Instead of always grabbing focus on focus-out, call our handler:
-        self.search_entry.connect("focus-out-event", self.on_search_entry_focus_out)
+        self.search_entry.set_size_request(400, -1)
 
+        # Dropdown de screens
+        self.screen_dropdown = Gtk.ComboBoxText()
+        self.screen_dropdown.set_name("screen-dropdown")
+        self.screen_dropdown.append("all", "All Screens")
+        for i, screen in enumerate(self.screens):
+            self.screen_dropdown.append(screen, f"Screen {i+1}")
+        self.screen_dropdown.set_active_id("all")
+
+        # Dropdown de esquemas
         self.schemes = {
             "scheme-tonal-spot": "Tonal Spot",
             "scheme-content": "Content",
@@ -73,100 +104,109 @@ class WallpaperSelector(Box):
             "scheme-neutral": "Neutral",
             "scheme-rainbow": "Rainbow",
         }
-
         self.scheme_dropdown = Gtk.ComboBoxText()
         self.scheme_dropdown.set_name("scheme-dropdown")
-        self.scheme_dropdown.set_tooltip_text("Select color scheme")
         for key, display_name in self.schemes.items():
             self.scheme_dropdown.append(key, display_name)
         self.scheme_dropdown.set_active_id("scheme-tonal-spot")
-        self.scheme_dropdown.connect("changed", self.on_scheme_changed)
 
-        # Create a switcher to enable/disable Matugen (enabled by default)
-        self.matugen_switcher = Gtk.Switch(name="matugen-switcher")
-        self.matugen_switcher.set_vexpand(False)
-        self.matugen_switcher.set_hexpand(False)
-        self.matugen_switcher.set_valign(Gtk.Align.CENTER)
-        self.matugen_switcher.set_halign(Gtk.Align.CENTER)
-        self.matugen_switcher.set_active(True)
-        
-        self.mat_icon = Label(name="mat-label", markup=icons.palette)
-                
-        # Add the switcher to the header_box's start_children
+        # Header
         self.header_box = CenterBox(
             name="header-box",
-            spacing=8,
-            orientation="h",
-            start_children=[self.matugen_switcher, self.mat_icon],
+            spacing=20,
+            start_children=[self.screen_dropdown],
             center_children=[self.search_entry],
             end_children=[self.scheme_dropdown],
         )
 
         self.add(self.header_box)
         self.add(self.scrolled_window)
+        
         self._start_thumbnail_thread()
-        self.setup_file_monitor()  # Inicializamos la monitorización de archivos
+        self.setup_file_monitor()
         self.show_all()
-        # Garantizamos que el input tenga foco al iniciar
         self.search_entry.grab_focus()
 
+    def _load_nitro_screens(self):
+        """Carrega os screens da configuração do Nitrogen"""
+        config = configparser.ConfigParser()
+        screens = []
+        
+        if os.path.exists(self.NITROGEN_CFG):
+            try:
+                config.read(self.NITROGEN_CFG)
+                screens = [section for section in config.sections() if section.startswith('xin_')]
+            except Exception as e:
+                print(f"Erro ao ler configuração do Nitrogen: {e}")
+        
+        if not screens:
+            screens = ['xin_0']
+            
+        return screens
+
+    def _update_nitro_config(self, screen_id, wallpaper_path):
+        """Atualiza o arquivo de configuração do Nitrogen"""
+        config = configparser.ConfigParser()
+        
+        if os.path.exists(self.NITROGEN_CFG):
+            config.read(self.NITROGEN_CFG)
+        
+        target_screens = [screen_id] if screen_id != "all" else self.screens
+        
+        for screen in target_screens:
+            if not config.has_section(screen):
+                config.add_section(screen)
+            
+            config.set(screen, 'file', wallpaper_path)
+            config.set(screen, 'mode', '0')
+        
+        with open(self.NITROGEN_CFG, 'w') as configfile:
+            config.write(configfile)
+
     def setup_file_monitor(self):
-        gfile = Gio.File.new_for_path("/home/moretti/.config/Kyma-Shell/assets/wallpapers")
+        gfile = Gio.File.new_for_path(self.WALLPAPERS_DIR)
         self.file_monitor = gfile.monitor_directory(Gio.FileMonitorFlags.NONE, None)
         self.file_monitor.connect("changed", self.on_directory_changed)
 
     def on_directory_changed(self, monitor, file, other_file, event_type):
-            file_name = file.get_basename()
-            if event_type == Gio.FileMonitorEvent.DELETED:
-                if file_name in self.files:
-                    self.files.remove(file_name)
-                    cache_path = self._get_cache_path(file_name)
-                    if os.path.exists(cache_path):
-                        try:
-                            os.remove(cache_path)
-                        except Exception as e:
-                            print(f"Error deleting cache {cache_path}: {e}")
-                    self.thumbnails = [(p, n) for p, n in self.thumbnails if n != file_name]
-                    GLib.idle_add(self.arrange_viewport, self.search_entry.get_text())
-            elif event_type == Gio.FileMonitorEvent.CREATED:
-                if self._is_image(file_name):
-                    # Convert filename to lowercase and replace spaces with "-"
-                    new_name = file_name.lower().replace(" ", "-")
-                    full_path = os.path.join(data.WALLPAPERS_DIR, file_name)
-                    new_full_path = os.path.join(data.WALLPAPERS_DIR, new_name)
-                    if new_name != file_name:
-                        try:
-                            os.rename(full_path, new_full_path)
-                            file_name = new_name
-                            print(f"Renamed file '{full_path}' to '{new_full_path}'")
-                        except Exception as e:
-                            print(f"Error renaming file {full_path}: {e}")
-                    if file_name not in self.files:
-                        self.files.append(file_name)
-                        self.files.sort()
-                        self.executor.submit(self._process_file, file_name)
-            elif event_type == Gio.FileMonitorEvent.CHANGED:
-                if self._is_image(file_name) and file_name in self.files:
-                    cache_path = self._get_cache_path(file_name)
-                    if os.path.exists(cache_path):
-                        try:
-                            os.remove(cache_path)
-                        except Exception as e:
-                            print(f"Error deleting cache for changed file {file_name}: {e}")
-                    self.executor.submit(self._process_file, file_name)
+        file_name = file.get_basename()
+        if event_type == Gio.FileMonitorEvent.DELETED:
+            if file_name in self.files:
+                self.files.remove(file_name)
+                cache_path = self._get_cache_path(file_name)
+                if os.path.exists(cache_path):
+                    try: os.remove(cache_path)
+                    except Exception as e: print(f"Erro ao deletar cache {cache_path}: {e}")
+                self.thumbnails = [(p, n) for p, n in self.thumbnails if n != file_name]
+                GLib.idle_add(self.arrange_viewport, self.search_entry.get_text())
+        elif event_type == Gio.FileMonitorEvent.CREATED:
+            if self._is_image(file_name):
+                new_name = file_name.lower().replace(" ", "-")
+                full_path = os.path.join(self.WALLPAPERS_DIR, file_name)
+                new_full_path = os.path.join(self.WALLPAPERS_DIR, new_name)
+                if new_name != file_name and not os.path.exists(new_full_path):
+                    try: os.rename(full_path, new_full_path)
+                    except Exception as e: print(f"Erro ao renomear arquivo {full_path}: {e}")
+                if new_name not in self.files:
+                    self.files.append(new_name)
+                    self.files.sort()
+                    self.executor.submit(self._process_file, new_name)
+        elif event_type == Gio.FileMonitorEvent.CHANGED:
+            if self._is_image(file_name) and file_name in self.files:
+                cache_path = self._get_cache_path(file_name)
+                if os.path.exists(cache_path):
+                    try: os.remove(cache_path)
+                    except Exception as e: print(f"Erro ao deletar cache {file_name}: {e}")
+                self.executor.submit(self._process_file, file_name)
+        GLib.idle_add(self.viewport.queue_draw)
 
     def arrange_viewport(self, query: str = ""):
         model = self.viewport.get_model()
         model.clear()
-        filtered_thumbnails = [
-            (thumb, name)
-            for thumb, name in self.thumbnails
-            if query.casefold() in name.casefold()
-        ]
-        filtered_thumbnails.sort(key=lambda x: x[1].lower())
-        for pixbuf, file_name in filtered_thumbnails:
-            model.append([pixbuf, file_name])
-        # If the search entry is empty, no icon is selected; otherwise, select the first one.
+        filtered = [(t, n) for t, n in self.thumbnails if query.casefold() in n.casefold()]
+        filtered.sort(key=lambda x: x[1].lower())
+        for pixbuf, name in filtered:
+            model.append([pixbuf, name])
         if query.strip() == "":
             self.viewport.unselect_all()
             self.selected_index = -1
@@ -176,49 +216,18 @@ class WallpaperSelector(Box):
     def on_wallpaper_selected(self, iconview, path):
         model = iconview.get_model()
         file_name = model[path][1]
-        full_path = os.path.join("/home/moretti/.config/Kyma-Shell/assets/wallpapers/", file_name)
+        full_path = os.path.join(self.WALLPAPERS_DIR, file_name)
         selected_scheme = self.scheme_dropdown.get_active_id()
-
-        nitro_path = os.path.expanduser("~/.config/nitrogen/bg-saved.cfg")
-        config = ConfigParser()
-        config.read(nitro_path)
-
-        for section in config.sections():
-            if "file" not in config[section]:
-                config[section]["file"] = full_path
-            else:
-                config[section]["file"] = full_path
-
-            if "mode" not in config[section]:
-                config[section]["mode"] = "0"
-            else:
-                config[section]["mode"] = "0"
-                
-        with open(nitro_path, "w") as configfile:
-            config.write(configfile)
-
+        selected_screen = self.screen_dropdown.get_active_id()
+        
+        self._update_nitro_config(selected_screen, full_path)
         exec_shell_command_async(f'matugen image {full_path} -t {selected_scheme}')
 
     def on_scheme_changed(self, combo):
         selected_scheme = combo.get_active_id()
-        print(f"Color scheme selected: {selected_scheme}")
+        print(f"Esquema de cores selecionado: {selected_scheme}")
 
     def on_search_entry_key_press(self, widget, event):
-        if event.state & Gdk.ModifierType.SHIFT_MASK:
-            if event.keyval in (Gdk.KEY_Up, Gdk.KEY_Down):
-                schemes_list = list(self.schemes.keys())
-                current_id = self.scheme_dropdown.get_active_id()
-                current_index = schemes_list.index(current_id) if current_id in schemes_list else 0
-                if event.keyval == Gdk.KEY_Up:
-                    new_index = (current_index - 1) % len(schemes_list)
-                else:
-                    new_index = (current_index + 1) % len(schemes_list)
-                self.scheme_dropdown.set_active(new_index)
-                return True
-            elif event.keyval == Gdk.KEY_Right:
-                self.scheme_dropdown.popup()
-                return True
-
         if event.keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Left, Gdk.KEY_Right):
             self.move_selection_2d(event.keyval)
             return True
@@ -231,81 +240,81 @@ class WallpaperSelector(Box):
 
     def move_selection_2d(self, keyval):
         model = self.viewport.get_model()
-        total_items = len(model)
-        if total_items == 0:
-            return
+        total = len(model)
+        if total == 0: return
 
-        if self.selected_index == -1:
-            new_index = 0 if keyval in (Gdk.KEY_Down, Gdk.KEY_Right) else total_items - 1
-        else:
-            current_index = self.selected_index
-            allocation = self.viewport.get_allocation()
-            item_width = 108  # Approximate item width including margins
-            columns = max(1, allocation.width // item_width)
-            if keyval == Gdk.KEY_Right:
-                new_index = current_index + 1
-            elif keyval == Gdk.KEY_Left:
-                new_index = current_index - 1
-            elif keyval == Gdk.KEY_Down:
-                new_index = current_index + columns
-            elif keyval == Gdk.KEY_Up:
-                new_index = current_index - columns
-            if new_index < 0:
-                new_index = 0
-            if new_index >= total_items:
-                new_index = total_items - 1
+        current = self.selected_index if self.selected_index != -1 else 0
+        columns = 5
 
-        self.update_selection(new_index)
+        if keyval == Gdk.KEY_Right: new = current + 1
+        elif keyval == Gdk.KEY_Left: new = current - 1
+        elif keyval == Gdk.KEY_Down: new = current + columns
+        elif keyval == Gdk.KEY_Up: new = current - columns
+        else: return
+
+        new = max(0, min(new, total - 1))
+        self.update_selection(new)
     
     def update_selection(self, new_index: int):
         self.viewport.unselect_all()
         path = Gtk.TreePath.new_from_indices([new_index])
         self.viewport.select_path(path)
-        self.viewport.scroll_to_path(path, False, 0.5, 0.5)  # Ensure the selected icon is visible
+        self.viewport.scroll_to_path(path, False, 0.5, 0.5)
         self.selected_index = new_index
 
     def _start_thumbnail_thread(self):
-        thread = GLib.Thread.new("thumbnail-loader", self._preload_thumbnails, None)
+        GLib.Thread.new("thumbnail-loader", self._preload_thumbnails, None)
 
     def _preload_thumbnails(self, _data):
-        futures = [self.executor.submit(self._process_file, file_name) for file_name in self.files]
+        futures = [self.executor.submit(self._process_file, f) for f in self.files]
         concurrent.futures.wait(futures)
-        GLib.idle_add(self._process_batch)
 
     def _process_file(self, file_name):
-        full_path = os.path.join("/home/moretti/.config/Kyma-Shell/assets/wallpapers/", file_name)
-        cache_path = self._get_cache_path(file_name)
-        if not os.path.exists(cache_path):
-            try:
+        try:
+            full_path = os.path.join(self.WALLPAPERS_DIR, file_name)
+            cache_path = self._get_cache_path(file_name)
+            
+            if not os.path.exists(cache_path):
                 with Image.open(full_path) as img:
-                    width, height = img.size
-                    side = min(width, height)
-                    left = (width - side) // 2
-                    top = (height - side) // 2
-                    right = left + side
-                    bottom = top + side
-                    img_cropped = img.crop((left, top, right, bottom))
-                    img_cropped.thumbnail((96, 96), Image.Resampling.LANCZOS)
-                    img_cropped.save(cache_path, "PNG")
-            except Exception as e:
-                print(f"Error processing {file_name}: {e}")
-                return
-        self.thumbnail_queue.append((cache_path, file_name))
-        GLib.idle_add(self._process_batch)
+                    # Mantém o aspect ratio original e redimensiona para um retângulo
+                    target_width = 192  # Largura aumentada para formato retangular
+                    target_height = 108 # Altura reduzida
+                    
+                    # Calcula novas dimensões mantendo o aspect ratio
+                    img.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
+                    
+                    # Cria nova imagem com fundo preto para preencher espaços vazios
+                    new_img = Image.new("RGB", (target_width, target_height), "black")
+                    new_img.paste(
+                        img,
+                        (
+                            (target_width - img.width) // 2,  # Centraliza horizontalmente
+                            (target_height - img.height) // 2  # Centraliza verticalmente
+                        )
+                    )
+                    
+                    new_img.save(cache_path, "PNG")
+            
+            with self.thumb_lock:
+                GLib.idle_add(partial(self._add_thumbnail, cache_path, file_name))
+        except Exception as e:
+            print(f"Erro ao processar {file_name}: {e}")
+            GLib.idle_add(partial(self._handle_processing_error, file_name))
 
-    def _process_batch(self):
-        batch = self.thumbnail_queue[:10]
-        del self.thumbnail_queue[:10]
-        for cache_path, file_name in batch:
-            try:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file(cache_path)
-                self.thumbnails.append((pixbuf, file_name))
+    def _add_thumbnail(self, cache_path, file_name):
+        try:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(cache_path)
+            self.thumbnails.append((pixbuf, file_name))
+            if self.search_entry.get_text().casefold() in file_name.casefold():
                 self.viewport.get_model().append([pixbuf, file_name])
-            except Exception as e:
-                print(f"Error loading thumbnail {cache_path}: {e}")
-        if self.thumbnail_queue:
-            GLib.idle_add(self._process_batch)
-        return False
+        except Exception as e:
+            print(f"Erro ao carregar thumbnail {cache_path}: {e}")
+
+    def _handle_processing_error(self, file_name):
+        if file_name in self.files:
+            self.files.remove(file_name)
+            self.thumbnails = [(p, n) for p, n in self.thumbnails if n != file_name]
+            GLib.idle_add(self.arrange_viewport, self.search_entry.get_text())
 
     def _get_cache_path(self, file_name: str) -> str:
         file_hash = hashlib.md5(file_name.encode("utf-8")).hexdigest()
@@ -316,7 +325,6 @@ class WallpaperSelector(Box):
         return file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp'))
 
     def on_search_entry_focus_out(self, widget, event):
-        # Only re-grab focus if the WallpaperSelector widget is mapped (visible)
-        if self.get_mapped():
+        if self.is_visible():
             widget.grab_focus()
         return False

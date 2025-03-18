@@ -156,8 +156,8 @@ class ActiveWindows(Box):
             
             if window_name == "fabric":
                 window_name = f"{data.USERNAME}@{data.HOSTNAME}"
-            elif " — " in window_name:
-                window_name = window_name.split(" — ")[-1]
+            # elif " — " in window_name:
+            #     window_name = window_name.split(" — ")[-1]
                 
             idle_add(self.update_window_label, window_name)
         except Exception as ex:
